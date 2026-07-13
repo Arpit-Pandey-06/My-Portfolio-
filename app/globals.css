@@ -1,0 +1,356 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 220 35% 6%;
+  --bg-2: 220 40% 4%;
+  --surface: 220 30% 9%;
+  --surface-2: 220 26% 12%;
+  --border: 222 20% 16%;
+  --border-soft: 222 20% 12%;
+  --text: 220 20% 92%;
+  --text-dim: 220 12% 55%;
+  --text-faint: 220 12% 34%;
+  --accent: 172 74% 64%;
+  --amber: 36 90% 58%;
+  --blue: 220 78% 65%;
+  --hue: 190;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  background: hsl(var(--bg));
+  color: hsl(var(--text));
+  overflow-x: hidden;
+}
+
+::selection {
+  background: hsl(var(--accent));
+  color: #03110f;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--bg));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-faint));
+}
+
+.ambient-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(600px 400px at 15% 20%, hsla(var(--hue), 80%, 55%, 0.08), transparent 60%),
+    radial-gradient(500px 500px at 85% 60%, hsla(calc(var(--hue) + 60), 70%, 55%, 0.05), transparent 60%),
+    linear-gradient(hsl(var(--bg-2)), hsl(var(--bg)));
+  transition: background 0.6s ease;
+}
+
+.ambient-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(hsl(var(--border-soft)) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border-soft)) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.35;
+  mask-image: radial-gradient(1200px 800px at 50% 0%, black, transparent 75%);
+}
+
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dependency graph                                                       */
+/* ---------------------------------------------------------------------- */
+
+.graph-widget {
+  width: 100%;
+}
+
+.graph-canvas {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-2));
+  background-image: radial-gradient(hsl(var(--border-soft)) 1px, transparent 1px);
+  background-size: 26px 26px;
+  /* Node sizes are set in cqw (see GraphNode) so they scale with this
+     container's width exactly as the node positions already do — a node's
+     size and its gap to its neighbor shrink/grow by the same factor at
+     every viewport width, so they can never overlap on a narrow screen
+     even though they do on a wide one. */
+  container-type: inline-size;
+}
+
+.graph-svg,
+.graph-node-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.graph-svg {
+  pointer-events: none;
+}
+
+/* Edges ------------------------------------------------------------------ */
+
+.graph-edge-base {
+  stroke: hsl(var(--border));
+  stroke-width: 1.2;
+  fill: none;
+  transition: opacity 0.25s ease, stroke 0.25s ease;
+}
+
+.graph-edge--active .graph-edge-base {
+  stroke: hsl(var(--accent));
+  opacity: 1;
+}
+
+.graph-edge--dim .graph-edge-base {
+  opacity: 0.12;
+}
+
+.graph-edge-glow {
+  stroke: hsl(var(--accent));
+  stroke-width: 3;
+  fill: none;
+  opacity: 0.35;
+  filter: drop-shadow(0 0 6px hsl(var(--accent) / 0.65));
+}
+
+.graph-edge-pulse {
+  stroke: hsl(var(--accent));
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 5 22;
+  animation: graph-pulse-travel 1.1s linear infinite;
+}
+
+@keyframes graph-pulse-travel {
+  to {
+    stroke-dashoffset: -54;
+  }
+}
+
+/* Nodes -------------------------------------------------------------------- */
+
+.graph-node {
+  pointer-events: auto;
+}
+
+.graph-node-hit {
+  display: flex;
+  cursor: pointer;
+  appearance: none;
+  border: none;
+  padding: 10px;
+  outline: none;
+}
+
+.graph-node-hit:focus-visible .graph-node-dot {
+  box-shadow: 0 0 0 3px hsl(var(--accent) / 0.35);
+}
+
+.graph-node-dot {
+  width: var(--node-size);
+  height: var(--node-size);
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--surface));
+  transition: opacity 0.3s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.graph-node-dot--core {
+  border-color: hsl(var(--accent));
+  background: hsl(var(--accent));
+  color: hsl(var(--bg));
+}
+
+.graph-node-icon {
+  position: relative;
+  width: 46%;
+  height: 46%;
+}
+
+.graph-node-dot--breathing {
+  animation: graph-core-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes graph-core-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px hsl(var(--accent) / 0.5));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 18px hsl(var(--accent) / 0.85));
+    transform: scale(1.1);
+  }
+}
+
+/*
+ * Scale ladder, from the single hoveredNodeId:
+ *  - idle / default:        scale(1)
+ *  - active (in the lit path, not the exact hovered node): scale(1.1)
+ *  - hovered (the exact node under cursor/focus):           scale(1.22)
+ * The core's own dot keeps its breathing keyframe instead of this static
+ * scale, so the two animations don't fight over the transform property.
+ */
+.graph-node--active .graph-node-dot:not(.graph-node-dot--core) {
+  transform: scale(1.1);
+}
+
+.graph-node--hovered .graph-node-dot:not(.graph-node-dot--core) {
+  border-color: hsl(var(--accent));
+  transform: scale(1.22);
+}
+
+.graph-node--hovered .graph-node-dot--core {
+  border-color: hsl(var(--accent));
+}
+
+.graph-node--dim {
+  opacity: 0.25;
+}
+
+.graph-node-label {
+  display: block;
+  margin-top: 10px;
+  white-space: nowrap;
+  text-align: center;
+  font-family: var(--font-mono);
+  color: hsl(var(--text-dim));
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.graph-node-label--category {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.graph-node-label--tech {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: hsl(var(--text-faint));
+}
+
+.graph-node--hovered .graph-node-label {
+  transform: scale(1.1);
+  color: hsl(var(--accent));
+}
+
+@media (max-width: 640px) {
+  .graph-node-hit {
+    padding: 10px;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Custom cursor                                                          */
+/* ---------------------------------------------------------------------- */
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 5px;
+  height: 5px;
+  background: hsl(var(--accent));
+  transform: translate(-50%, -50%);
+}
+
+.cursor-ring {
+  width: 30px;
+  height: 30px;
+  border: 1px solid hsl(var(--text-faint));
+  transform: translate(-50%, -50%);
+  transition: width 0.2s ease, height 0.2s ease, border-color 0.2s ease, background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.cursor-ring--interactive {
+  width: 44px;
+  height: 44px;
+  border-color: hsl(var(--accent));
+  background: hsl(var(--accent) / 0.08);
+  filter: drop-shadow(0 0 10px hsl(var(--accent) / 0.35));
+}
+
+.cursor-ring--graph {
+  animation: cursor-network-pulse 1.2s ease-out infinite;
+}
+
+@keyframes cursor-network-pulse {
+  0% {
+    box-shadow: 0 0 0 0 hsl(var(--accent) / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px hsl(var(--accent) / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-edge-pulse {
+    animation: none;
+  }
+  .graph-node-dot--breathing {
+    animation: none;
+  }
+  .cursor-ring--graph {
+    animation: none;
+  }
+}
